@@ -160,7 +160,7 @@ __global__ void sobel(unsigned int* c_d_img, int width, int height)
 
 //Question 12
 
-__global__ void popArt(unsigned int *c_d_img, int width, int height)
+__global__ void popArt(unsigned int *c_d_img, unsigned int *c_d_tmp, int width, int height)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -184,9 +184,9 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
         g = min(g, 255);
         b = min(b, 255);
 
-        c_d_img[3 * idx] = r;
-        c_d_img[3 * idx + 1] = g;
-        c_d_img[3 * idx + 2] = b;
+        c_d_tmp[3 * idx] = r;
+        c_d_tmp[3 * idx + 1] = g;
+        c_d_tmp[3 * idx + 2] = b;
     }
 }
 
@@ -252,7 +252,7 @@ int main (int argc , char** argv)
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  popArt<<<grid_size, block_size>>>(c_d_img, width, height);
+  popArt<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
