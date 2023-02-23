@@ -168,9 +168,9 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
     if(y < height && x < width)
     {
         int idx = y * width + x;
-        int r = input[3 * idx];
-        int g = input[3 * idx + 1];
-        int b = input[3 * idx + 2];
+        int r = c_d_img[3 * idx];
+        int g = c_d_img[3 * idx + 1];
+        int b = c_d_img[3 * idx + 2];
 
         int max_val = max(max(r, g), b);
         int min_val = min(min(r, g), b);
@@ -252,7 +252,7 @@ int main (int argc , char** argv)
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  popArt<<<grid_size, block_size>>>(c_d_img, width, height)
+  popArt<<<grid_size, block_size>>>(c_d_img, width, height);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
