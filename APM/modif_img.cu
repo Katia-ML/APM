@@ -6,7 +6,6 @@
 #include <cuda_runtime.h>
 
 // width 1920 Height 1024
-#define THRESHOLD 50
 #define WIDTH 3840
 #define HEIGHT 2160
 #define BPP 24 // Since we're outputting three 8 bit RGB values
@@ -99,50 +98,41 @@ __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
 }
 
 //Question 10
-__global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
+__global__ void sobel(unsigned char* c_d_img, unsigned char* c_d_tmp, int width, int height)
 {
-    int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id;
-  double sob;
-  double sobelF[3];
+    // Sobel filter coefficients
+    int sobel_x[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+    int sobel_y[3][3] = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
 
-  if ((col < width ) && (line < height)){
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
 
-  id  = ( (line + 1 ) * width + (col +1) ) * 3;
-  for (int i = 0; i < 3 ; i++ ) 
-  {
-  int aa = c_d_img[id + ( width - 1 ) * 3 + i];
-  int ab = c_d_img[id + ( width + 0 ) * 3 + i];
-  int ac = c_d_img[id + ( width + 1 ) * 3 + i];
-  int ba = c_d_img[id - 3 + i];
-  int bc = c_d_img[id + 3 + i];
-  int ca = c_d_img[id - (width - 1 ) * 3 + i]; 
-  int cb = c_d_img[id - (width - 0 ) * 3 + i];
-  int cc = c_d_img[id - (width + 1 ) * 3 + i];
+    if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
 
-  int deltaX = -aa + ac   - 2*ba + 2*bc - ca  + cc;
-  int deltaY = +cc + 2*cb + ca   - ac   -2*ab - aa;
+        int gx = 0, gy = 0;
 
-  sobelF[i] = sqrt((float)(deltaX*deltaX+deltaY*deltaY));
+        // Compute the gradient in the x direction
+        for (int i = -1; i <= 1; ++i) {
+            for (int j = -1; j <= 1; ++j) {
+                gx += sobel_x[i+1][j+1] * c_d_img[((y + i) * width + x + j) * 3];
+            }
+        }
 
-  }
+        // Compute the gradient in the y direction
+        for (int i = -1; i <= 1; ++i) {
+            for (int j = -1; j <= 1; ++j) {
+                gy += sobel_y[i+1][j+1] * c_d_img[((y + i) * width + x + j) * 3];
+            }
+        }
 
-  sob = (sobelF[0] + sobelF[1] + sobelF[2])/3;
+        // Compute the magnitude of the gradient
+        int magnitude = abs(gx) + abs(gy);
 
-  if(sob > THRESHOLD){
-    c_d_img[id + 0] = 255;
-    c_d_img[id + 1] = 255;
-    c_d_img[id + 2] = 255;
-  }
-  else
-  {
-    c_d_img[id + 0] = 0;
-    c_d_img[id + 1] = 0;
-    c_d_img[id + 2] = 0;
-  }
-
-}
+        // Set the pixel value to white if the magnitude is greater than a threshold
+        c_d_tmp[(y * width + x) * 3] = (magnitude > 128 ? 255 : 0);
+        c_d_tmp[(y * width + x) * 3 + 1] = (magnitude > 128 ? 255 : 0);
+        c_d_tmp[(y * width + x) * 3 + 2] = (magnitude > 128 ? 255 : 0);
+    }
 }
 
 
@@ -199,8 +189,8 @@ int main (int argc , char** argv)
 
 
   // Kernel
-  dim3 block_size(32, 32);
-  dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
+  dim3 block_size(32, 32, 1);
+  dim3 grid_size((WIDTH + block_size.x - 1) / block_size.x, (HEIGHT + block_size.y - 1) / block_size.y);
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
