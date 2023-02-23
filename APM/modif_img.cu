@@ -11,6 +11,7 @@
 
 using namespace std;
 
+//Question 6
 __global__ void saturate_component(unsigned int* c_d_img, int width, int height, int component) {
 
 
@@ -28,6 +29,8 @@ __global__ void saturate_component(unsigned int* c_d_img, int width, int height,
         }
     }
 }
+
+//Question 7
 
 int main (int argc , char** argv)
 {
@@ -81,7 +84,7 @@ int main (int argc , char** argv)
   dim3 block_size(32, 32);
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
-  saturate_component<<<grid_size, block_size>>>(d_img, width, height, 0);
+  saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   // Copy back
