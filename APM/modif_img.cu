@@ -31,6 +31,26 @@ __global__ void saturate_component(unsigned int* c_d_img, int width, int height,
 }
 
 //Question 7
+__global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (x < width / 2 && y < height)
+    {
+        int idx1 = (y * width + x) * 3;
+        int idx2 = (y * width + (width - x - 1)) * 3;
+        
+        // Swap pixel values between idx1 and idx2
+        unsigned int tmp;
+        tmp = c_d_img[idx1]; c_d_img[idx1] = c_d_img[idx2]; c_d_img[idx2] = tmp;
+        tmp = c_d_img[idx1+1]; c_d_img[idx1+1] = c_d_img[idx2+1]; c_d_img[idx2+1] = tmp;
+        tmp = c_d_img[idx1+2]; c_d_img[idx1+2] = c_d_img[idx2+2]; c_d_img[idx2+2] = tmp;
+    }
+
+    __syncthreads();
+}
+
 
 int main (int argc , char** argv)
 {
@@ -84,9 +104,12 @@ int main (int argc , char** argv)
   dim3 block_size(32, 32);
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
-  saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
+  //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
+  horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  
   // Copy back
   memcpy(img, d_img, 3 * width * height * sizeof(unsigned int));
 
