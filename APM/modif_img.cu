@@ -1,180 +1,56 @@
 #include <iostream>
 #include <string.h>
+#include <cstdlib>
+#include <cstdio>
 #include "FreeImage.h"
-#include <stdio.h>
-#include "cuda.h"
 #include <cuda_runtime.h>
 
-#define THRESHOLD 50
-#define WIDTH 3840
-#define HEIGHT 2160
-#define BLOCK_WIDTH 32
+#define WIDTH 1920
+#define HEIGHT 1024
 #define BPP 24 // Since we're outputting three 8 bit RGB values
 
 using namespace std;
 
-__global__
-void kernel_saturation(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id;
-  id = ((line * width) + col)*3;
+//Question 6
+__global__ void saturate_component(unsigned int* c_d_img, int width, int height, int component) {
 
-  if ((line < height -1) && (col < width -1)){
-       c_d_img[id  + 0] = 0xFF / 2;
-       c_d_img[id  + 1] /= 2;
-       c_d_img[id  + 2] /= 2;
-  }
+
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (x < width && y < height) {
+        int idx = (y * width + x) * 3;
+        if (component == 0) {  // saturate red component
+            c_d_img[idx] = 255;
+        } else if (component == 1) {  // saturate green component
+            c_d_img[idx + 1] = 255;
+        } else {  // saturate blue component
+            c_d_img[idx + 2] = 255;
+        }
+    }
 }
 
-__global__
-void kernel_symmetry(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id,id2;
+//Question 7
+__global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
 
-  id  = ((  line * width  ) + col ) * 3;
-  id2  = (( (height-line) * width  ) + col ) * 3;
-
-
-  if ((line < height / 2 ) && (col < width )) {
-       c_d_img[id  + 0] = c_d_tmp[id2  + 0];
-       c_d_img[id  + 1] = c_d_tmp[id2  + 1];
-       c_d_img[id  + 2] = c_d_tmp[id2  + 2];
-  }
-}
-
-__global__
-void kernel_grey(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id,gray;
-
-  id  = ((  line * width  ) + col ) * 3;
-  gray = c_d_img[id+0]*0.299 + c_d_img[id+1]*0.587 + c_d_img[id+2]*0.114;
-
-  if ((line < height -1 ) && (col < width -1 )) {
-       c_d_img[id  + 0] = gray;
-       c_d_img[id  + 1] = gray;
-       c_d_img[id  + 2] = gray;
-  }
-}
-
-
-__global__
-void kernel_blur(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id;
-
-  id  = ((  ( line +1 ) * width  ) + col +1 ) * 3;
-  
-  
-  for (int i = 0; i < 3 ; i++ ) 
-  {
-  int aa = c_d_img[id + ( width - 1 ) * 3 + i]; 
-  int ab = c_d_img[id + ( width + 0 ) * 3 + i]; 
-  int ac = c_d_img[id + ( width + 1 ) * 3 + i]; 
-  int ba = c_d_img[id - 3 + i]; 
-  int bc = c_d_img[id + 3 + i];
-  int ca = c_d_img[id - (width - 1 ) * 3 + i]; 
-  int cb = c_d_img[id - (width - 0 ) * 3 + i];
-  int cc = c_d_img[id - (width + 1 ) * 3 + i];
-
-  int moy = (aa + ab + ac + ba  + bc + ca + cb + cc)/8;
-  
-  if ((line < height -1 ) && (col < width -1 )) {
-       c_d_img[id  + i] = moy;
-  }
-  }
-}
-
-__global__
-void kernel_sobel(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id;
-  double sob;
-  double sobelF[3];
-
-  if ((col < width ) && (line < height)){
-
-  id  = ( (line + 1 ) * width + (col +1) ) * 3;
-  for (int i = 0; i < 3 ; i++ ) 
-  {
-  int aa = c_d_img[id + ( width - 1 ) * 3 + i];
-  int ab = c_d_img[id + ( width + 0 ) * 3 + i];
-  int ac = c_d_img[id + ( width + 1 ) * 3 + i];
-  int ba = c_d_img[id - 3 + i];
-  int bc = c_d_img[id + 3 + i];
-  int ca = c_d_img[id - (width - 1 ) * 3 + i]; 
-  int cb = c_d_img[id - (width - 0 ) * 3 + i];
-  int cc = c_d_img[id - (width + 1 ) * 3 + i];
-
-  int deltaX = -aa + ac   - 2*ba + 2*bc - ca  + cc;
-  int deltaY = +cc + 2*cb + ca   - ac   -2*ab - aa;
-
-  sobelF[i] = sqrt((float)(deltaX*deltaX+deltaY*deltaY));
-
-  }
-
-  sob = (sobelF[0] + sobelF[1] + sobelF[2])/3;
-
-  if(sob > THRESHOLD){
-    c_d_img[id + 0] = 255;
-    c_d_img[id + 1] = 255;
-    c_d_img[id + 2] = 255;
-  }
-  else
-  {
-    c_d_img[id + 0] = 0;
-    c_d_img[id + 1] = 0;
-    c_d_img[id + 2] = 0;
-  }
-
-}
-}
-
-__global__
-void kernel_popArt(unsigned int* c_d_img,unsigned int* c_d_tmp, int height, int width){
-   
-  int col   = threadIdx.x + blockDim.x * blockIdx.x;
-  int line  = threadIdx.y + blockDim.y * blockIdx.y;
-  int id;
-  id = ((line * width) + col)*3;
-
-  if ((line < height/2 ) && (col < width/2 )){
-       c_d_img[id  + 0] /= 2;
-       c_d_img[id  + 1] /= 4;
-       c_d_img[id  + 2] = 0xFF / 1.5;
-  }
-
-    if ((line >height/2 -1) &&(line < height ) && (col < width/2 )){
-       c_d_img[id  + 0] = 0xFF - c_d_img[id + 0];
-       c_d_img[id  + 1] = 0xFF / 2;
-       c_d_img[id  + 2] /= 4;
-  }
-
-    if ((line > height/2 -1 ) && (line < height) && (col < width ) && (col > width/2 -1))
+    if (x < width / 2 && y < height)
     {
-       c_d_img[id  + 0] = 0xFF / 2;
-       c_d_img[id  + 1] /= 2;
-       c_d_img[id  + 2] /= 2;
-  }
+        int idx1 = (y * width + x) * 3;
+        int idx2 = (y * width + (width - x - 1)) * 3;
+        
+        // Swap pixel values between idx1 and idx2
+        unsigned int tmp;
+        tmp = c_d_img[idx1]; c_d_img[idx1] = c_d_img[idx2]; c_d_img[idx2] = tmp;
+        tmp = c_d_img[idx1+1]; c_d_img[idx1+1] = c_d_img[idx2+1]; c_d_img[idx2+1] = tmp;
+        tmp = c_d_img[idx1+2]; c_d_img[idx1+2] = c_d_img[idx2+2]; c_d_img[idx2+2] = tmp;
+    }
 
-  int gray = c_d_img[id+0]*0.299 + c_d_img[id+1]*0.587 + c_d_img[id+2]*0.114;
-
-  if ((line < height/2  ) && (col > width/2 ) && (col < width )) {
-       c_d_img[id  + 0] = gray;
-       c_d_img[id  + 1] = gray;
-       c_d_img[id  + 2] = gray;
-  }
+    __syncthreads();
 }
+
 
 int main (int argc , char** argv)
 {
@@ -218,51 +94,24 @@ int main (int argc , char** argv)
   memcpy(d_img, img, 3 * width * height * sizeof(unsigned int));
   memcpy(d_tmp, img, 3 * width * height * sizeof(unsigned int));
 
-  unsigned int  *c_d_img, *c_d_tmp;
-
-  cudaEvent_t start,stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
+  unsigned int  *c_d_img;
 
   cudaMalloc((void **)&c_d_img, sizeof(unsigned int) * width * height * 3);
-  cudaMalloc((void **)&c_d_tmp, sizeof(unsigned int) * width * height * 3);
-
   cudaMemcpy(c_d_img, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
-  cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
 
-
-  int nbBlocksx = width / BLOCK_WIDTH;
-  if( width % BLOCK_WIDTH ) nbBlocksx++;
-
-  int nbBlocksy = height / BLOCK_WIDTH;
-  if( height % BLOCK_WIDTH ) nbBlocksy++;
-
-  dim3 gridSize(nbBlocksx, nbBlocksy);
-  dim3 blockSize(BLOCK_WIDTH, BLOCK_WIDTH);
 
   // Kernel
-  cudaEventRecord(start);
-  //kernel_saturation<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
-  //kernel_symmetry<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
-  //kernel_grey<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
-  kernel_blur<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
-  //kernel_sobel<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
-  //kernel_popArt<<< gridSize , blockSize >>>(c_d_img,c_d_tmp,height,width);
+  dim3 block_size(32, 32);
+  dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
+
+  //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
+  horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+
+
+  cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   
-  cudaEventRecord(stop);
-
-  cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * width * height * 3, cudaMemcpyDeviceToHost);
-  cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * width * height * 3, cudaMemcpyDeviceToHost);
-
-  cudaEventSynchronize(stop);
-
   // Copy back
   memcpy(img, d_img, 3 * width * height * sizeof(unsigned int));
-
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  printf("Matrice %dx%d\n\tTemps: %f s\n", width, height, milliseconds/1000);
-
 
   bits = (BYTE*)FreeImage_GetBits(bitmap);
   for ( int y =0; y<height; y++)
@@ -294,6 +143,4 @@ int main (int argc , char** argv)
   free(d_img);
   free(d_tmp);
   cudaFree(c_d_img);
-  cudaFree(c_d_tmp);
 }
-
