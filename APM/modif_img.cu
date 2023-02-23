@@ -13,12 +13,19 @@
 using namespace std;
 
 //Question 6
+
+/* saturate_component is the GPU kernel that will run on each pixel in the image. it 
+takes input a pointer to the image on the GPU, its width, height.*/
 __global__ void saturate_component(unsigned int* c_d_img, int width, int height, int component) {
 
-
+    /* Each thread corresponds to one pixel in the image. The calculation of the x and y coordinates 
+    of the pixel is done from the thread and block identifier, using the formula blockIdx.x * blockDim.x + threadIdx.x for the x axis and 
+    blockIdx.y * blockDim.y + threadIdx.y for the y axis.*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
 
+    /* We then check if the pixel is inside the image by comparing its x and y coordinates with the width and height of the image, if it's
+    the case we saturate the pixel by putting its value to 255.*/
     if (x < width && y < height) {
         int idx = (y * width + x) * 3;
         if (component == 0) {  // saturate red component
@@ -32,6 +39,9 @@ __global__ void saturate_component(unsigned int* c_d_img, int width, int height,
 }
 
 //Question 7
+
+/*  In the CUDA kernel, each thread retrieves the corresponding pixel values in the first and last column of the image, and then swaps
+ their positions.*/
 __global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -48,11 +58,15 @@ __global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
         tmp = c_d_img[idx1+1]; c_d_img[idx1+1] = c_d_img[idx2+1]; c_d_img[idx2+1] = tmp;
         tmp = c_d_img[idx1+2]; c_d_img[idx1+2] = c_d_img[idx2+2]; c_d_img[idx2+2] = tmp;
     }
-
+    /* We use the __syncthreads() function to synchronize all threads before continuing to process the image.*/
     __syncthreads();
 }
 
 //Question 8
+
+/*The kernel blur takes as input an array c_d_img representing the original image, width width and height height of the image. 
+For each pixel in the image, the kernel calculates the average value of the direct neighboring pixels taking into account the red, green 
+and blue component of each pixel. The average value is then stored in the c_d_img table for each pixel.*/
 __global__ void blur(unsigned int* c_d_img, int width, int height)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -77,7 +91,11 @@ __global__ void blur(unsigned int* c_d_img, int width, int height)
 }
 
 //Question 9
+
+/* The grayscale kernel allows you to gray the loaded image by applying the following formula on each pixel 
+grey_value = 0.299 * red + 0.587 * green + 0.114 * blue;*/
 __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
+    
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -98,6 +116,10 @@ __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
 }
 
 //Question 10
+
+/* This kernel performs the convolution of the input image with two Sobel filters in x and y to calculate the gradient. 
+The gradient is then used to calculate the magnitude of the gradient. If the magnitude is greater than a threshold (here 128), the pixel is
+considered an outline and it is defined in white in the output image.*/
 __global__ void sobel(unsigned int* c_d_img, int width, int height)
 {
     // Sobel filter coefficients
@@ -195,8 +217,8 @@ int main (int argc , char** argv)
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
-  blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
 
 
