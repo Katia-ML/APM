@@ -125,7 +125,7 @@ int main (int argc , char** argv)
   cudaMalloc((void **)&c_d_tmp, sizeof(unsigned int) * width * height * 3);
 
   cudaMemcpy(c_d_img, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
-  cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
+  //cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
 
 
   // Kernel
