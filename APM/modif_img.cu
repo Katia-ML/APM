@@ -5,8 +5,9 @@
 #include "FreeImage.h"
 #include <cuda_runtime.h>
 
-#define WIDTH 1920
-#define HEIGHT 1024
+// width 1920 Height 1024
+#define WIDTH 3840
+#define HEIGHT 2160
 #define BPP 24 // Since we're outputting three 8 bit RGB values
 
 using namespace std;
@@ -160,8 +161,7 @@ int main (int argc , char** argv)
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
-//qst8
-  //cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   
   // Copy back
   memcpy(img, d_img, 3 * width * height * sizeof(unsigned int));
