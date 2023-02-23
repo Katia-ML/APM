@@ -252,11 +252,11 @@ int main (int argc , char** argv)
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
-  //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+  horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  popArt<<<grid_size, block_size>>>(c_d_img, width, height);
+  //popArt<<<grid_size, block_size>>>(c_d_img, width, height);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
