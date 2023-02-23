@@ -189,14 +189,14 @@ int main (int argc , char** argv)
 
 
   // Kernel
-  dim3 block_size(32, 32, 1);
+  dim3 block_size(32, 32);
   dim3 grid_size((WIDTH + block_size.x - 1) / block_size.x, (HEIGHT + block_size.y - 1) / block_size.y);
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
   //blur<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
-  //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  sobel<<<grid_size, block_size>>>(c_d_img,c_d_tmp, WIDTH, HEIGHT);
+  grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  //sobel<<<grid_size, block_size>>>(c_d_img,c_d_tmp, WIDTH, HEIGHT);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
