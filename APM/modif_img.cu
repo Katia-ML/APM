@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 
 // width 1920 Height 1024
+#define THRESHOLD 50
 #define WIDTH 3840
 #define HEIGHT 2160
 #define BPP 24 // Since we're outputting three 8 bit RGB values
