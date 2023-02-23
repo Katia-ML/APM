@@ -75,6 +75,27 @@ __global__ void blur(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, in
     }
 }
 
+//Question 9
+__global__ void grayscale(unsigned int* c_d_img, int width, int height) {
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (x < width && y < height) {
+        int idx = (y * width + x) * 3;
+        unsigned int red = c_d_img[idx];
+        unsigned int green = c_d_img[idx + 1];
+        unsigned int blue = c_d_img[idx + 2];
+
+        // Compute grayscale value
+        unsigned int grey_value = 0.299 * red + 0.587 * green + 0.114 * blue;
+
+        // Set each component of the pixel to the grayscale value
+        c_d_img[idx] = grey_value;
+        c_d_img[idx + 1] = grey_value;
+        c_d_img[idx + 2] = grey_value;
+    }
+}
+
 
 
 int main (int argc , char** argv)
@@ -125,7 +146,7 @@ int main (int argc , char** argv)
   cudaMalloc((void **)&c_d_tmp, sizeof(unsigned int) * width * height * 3);
 
   cudaMemcpy(c_d_img, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
-  //cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
+  cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
 
 
   // Kernel
@@ -134,10 +155,11 @@ int main (int argc , char** argv)
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
-  blur<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
+  //blur<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
+  grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
 
 
-  //cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   
   // Copy back
