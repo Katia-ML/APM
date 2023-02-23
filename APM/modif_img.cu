@@ -162,31 +162,35 @@ __global__ void sobel(unsigned int* c_d_img, int width, int height)
 
 __global__ void popArt(unsigned int *c_d_img, int width, int height)
 {
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int x  = threadIdx.x + blockDim.x * blockIdx.x;
+    int y  = threadIdx.y + blockDim.y * blockIdx.y;
+    int idx = (y * width + x)*3;
 
-    if(y < height && x < width)
+    if ((y < height/2 ) && (x < width/2 )){
+       c_d_img[idx] /= 2;
+       c_d_img[idx + 1] /= 4;
+       c_d_img[idx + 2] = 0xFF / 1.5;
+    }
+
+    if ((y >height/2 -1) &&(y < height ) && (x < width/2 )){
+       c_d_img[idx] = 0xFF - c_d_img[idx + 0];
+       c_d_img[idx + 1] = 0xFF / 2;
+       c_d_img[idx + 2] /= 4;
+    }
+
+    if ((y > height/2 -1 ) && (y < height) && (x < width ) && (x > width/2 -1))
     {
-        int idx = y * width + x;
-        int r = c_d_img[3 * idx];
-        int g = c_d_img[3 * idx + 1];
-        int b = c_d_img[3 * idx + 2];
+       c_d_img[idx] = 0xFF / 2;
+       c_d_img[idx + 1] /= 2;
+       c_d_img[idx + 2] /= 2;
+    }
 
-        int max_val = max(max(r, g), b);
-        int min_val = min(min(r, g), b);
-        int gray_val = (max_val + min_val) / 2;
+    int gray = c_d_img[idx]*0.299 + c_d_img[idx+1]*0.587 + c_d_img[idx+2]*0.114;
 
-        r = (r - gray_val) * 3;
-        g = (g - gray_val) * 3;
-        b = (b - gray_val) * 3;
-
-        r = min(r, 255);
-        g = min(g, 255);
-        b = min(b, 255);
-
-        c_d_img[3 * idx] = r;
-        c_d_img[3 * idx + 1] = g;
-        c_d_img[3 * idx + 2] = b;
+    if ((y < height/2  ) && (x > width/2 ) && (x < width )) {
+       c_d_img[idx] = gray;
+       c_d_img[idx + 1] = gray;
+       c_d_img[idx + 2] = gray;
     }
 }
 
