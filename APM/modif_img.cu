@@ -98,7 +98,7 @@ __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
 }
 
 //Question 10
-__global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
+__global__ void sobel(unsigned char* c_d_img, int width, int height)
 {
     // Sobel filter coefficients
     int sobel_x[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
@@ -106,6 +106,7 @@ __global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, i
 
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int idx = (y * width + x) * 3;
 
     if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
 
@@ -129,9 +130,9 @@ __global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, i
         int magnitude = abs(gx) + abs(gy);
 
         // Set the pixel value to white if the magnitude is greater than a threshold
-        c_d_tmp[(y * width + x) * 3] = (magnitude > 128 ? 255 : 0);
-        c_d_tmp[(y * width + x) * 3 + 1] = (magnitude > 128 ? 255 : 0);
-        c_d_tmp[(y * width + x) * 3 + 2] = (magnitude > 128 ? 255 : 0);
+        c_d_img[idx] = (magnitude > 128 ? 255 : 0);
+        c_d_img[idx + 1] = (magnitude > 128 ? 255 : 0);
+        c_d_img[idx + 2] = (magnitude > 128 ? 255 : 0);
     }
 }
 
@@ -190,13 +191,13 @@ int main (int argc , char** argv)
 
   // Kernel
   dim3 block_size(32, 32);
-  dim3 grid_size((WIDTH + block_size.x - 1) / block_size.x, (HEIGHT + block_size.y - 1) / block_size.y);
+  dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
   //blur<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
-  grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  //sobel<<<grid_size, block_size>>>(c_d_img,c_d_tmp, WIDTH, HEIGHT);
+  //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
