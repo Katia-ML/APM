@@ -53,7 +53,7 @@ __global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
 }
 
 //Question 8
-__global__ void blur(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
+__global__ void blur(unsigned int* c_d_img, int width, int height)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -70,9 +70,9 @@ __global__ void blur(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, in
         int sum_green = c_d_img[idx + 1] + (y > 0 ? c_d_img[idx_top + 1] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 1] : 0) + (x > 0 ? c_d_img[idx_left + 1] : 0) + (x < width - 1 ? c_d_img[idx_right + 1] : 0);
         int sum_blue = c_d_img[idx + 2] + (y > 0 ? c_d_img[idx_top + 2] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 2] : 0) + (x > 0 ? c_d_img[idx_left + 2] : 0) + (x < width - 1 ? c_d_img[idx_right + 2] : 0);
         
-        c_d_tmp[idx] = sum_red / 5;
-        c_d_tmp[idx + 1] = sum_green / 5;
-        c_d_tmp[idx + 2] = sum_blue / 5;
+        c_d_img[idx] = sum_red / 5;
+        c_d_img[idx + 1] = sum_green / 5;
+        c_d_img[idx + 2] = sum_blue / 5;
     }
 }
 
@@ -195,9 +195,9 @@ int main (int argc , char** argv)
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
-  //blur<<<grid_size, block_size>>>(c_d_img, c_d_tmp, width, height);
+  blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
