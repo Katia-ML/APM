@@ -104,8 +104,8 @@ int main (int argc , char** argv)
   dim3 block_size(32, 32);
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
-  //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
-  horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+  saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
+  //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
