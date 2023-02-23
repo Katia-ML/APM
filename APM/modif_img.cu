@@ -98,7 +98,7 @@ __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
 }
 
 //Question 10
-__global__ void sobel(unsigned char* c_d_img, unsigned char* c_d_tmp, int width, int height)
+__global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
 {
     // Sobel filter coefficients
     int sobel_x[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
