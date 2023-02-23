@@ -158,6 +158,38 @@ __global__ void sobel(unsigned int* c_d_img, int width, int height)
     }
 }
 
+//Question 12
+
+__global__ void popArt(unsigned int *c_d_img, int width, int height)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if(y < height && x < width)
+    {
+        int idx = y * width + x;
+        int r = input[3 * idx];
+        int g = input[3 * idx + 1];
+        int b = input[3 * idx + 2];
+
+        int max_val = max(max(r, g), b);
+        int min_val = min(min(r, g), b);
+        int gray_val = (max_val + min_val) / 2;
+
+        r = (r - gray_val) * 3;
+        g = (g - gray_val) * 3;
+        b = (b - gray_val) * 3;
+
+        r = min(r, 255);
+        g = min(g, 255);
+        b = min(b, 255);
+
+        c_d_img[3 * idx] = r;
+        c_d_img[3 * idx + 1] = g;
+        c_d_img[3 * idx + 2] = b;
+    }
+}
+
 
 
 int main (int argc , char** argv)
@@ -218,8 +250,9 @@ int main (int argc , char** argv)
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
+  popArt<<<grid_size, block_size>>>(c_d_img, width, height)
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
