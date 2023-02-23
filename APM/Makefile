@@ -1,7 +1,7 @@
 default: all
 
 all:
-	nvcc -I${HOME}/Projet_APM/softs/FreeImage/include modif_img.cpp -L${HOME}/Projet_APM/softs/FreeImage/lib/ -lfreeimage -o modif_img.exe
+	nvcc -I${HOME}/softs/FreeImage/include modif_img.cu -L${HOME}/softs/FreeImage/lib/ -lfreeimage -o modif_img.exe
 
 
 clean:
