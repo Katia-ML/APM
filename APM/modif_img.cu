@@ -51,6 +51,31 @@ __global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
     __syncthreads();
 }
 
+//Question 8
+__global__ void blur(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    
+    if (x < width && y < height)
+    {
+        int idx = (y * width + x) * 3;
+        int idx_top = ((y - 1) * width + x) * 3;
+        int idx_bottom = ((y + 1) * width + x) * 3;
+        int idx_left = (y * width + (x - 1)) * 3;
+        int idx_right = (y * width + (x + 1)) * 3;
+        
+        int sum_red = c_d_img[idx] + (y > 0 ? c_d_img[idx_top] : 0) + (y < height - 1 ? c_d_img[idx_bottom] : 0) + (x > 0 ? c_d_img[idx_left] : 0) + (x < width - 1 ? c_d_img[idx_right] : 0);
+        int sum_green = c_d_img[idx + 1] + (y > 0 ? c_d_img[idx_top + 1] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 1] : 0) + (x > 0 ? c_d_img[idx_left + 1] : 0) + (x < width - 1 ? c_d_img[idx_right + 1] : 0);
+        int sum_blue = c_d_img[idx + 2] + (y > 0 ? c_d_img[idx_top + 2] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 2] : 0) + (x > 0 ? c_d_img[idx_left + 2] : 0) + (x < width - 1 ? c_d_img[idx_right + 2] : 0);
+        
+        c_d_tmp[idx] = sum_red / 5;
+        c_d_tmp[idx + 1] = sum_green / 5;
+        c_d_tmp[idx + 2] = sum_blue / 5;
+    }
+}
+
+
 
 int main (int argc , char** argv)
 {
@@ -93,22 +118,27 @@ int main (int argc , char** argv)
 
   memcpy(d_img, img, 3 * width * height * sizeof(unsigned int));
   memcpy(d_tmp, img, 3 * width * height * sizeof(unsigned int));
-
-  unsigned int  *c_d_img;
+  
+  unsigned int  *c_d_img, *c_d_tmp;
 
   cudaMalloc((void **)&c_d_img, sizeof(unsigned int) * width * height * 3);
+  cudaMalloc((void **)&c_d_tmp, sizeof(unsigned int) * width * height * 3);
+
   cudaMemcpy(c_d_img, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
+  cudaMemcpy(c_d_tmp, img, sizeof(unsigned int) * width * height * 3, cudaMemcpyHostToDevice);
 
 
   // Kernel
   dim3 block_size(32, 32);
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
-  saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
+  //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
   //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+  blur<<<dimGrid, dimBlock>>>(c_d_img, c_d_tmp, width, height);
 
 
-  cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  //cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   
   // Copy back
   memcpy(img, d_img, 3 * width * height * sizeof(unsigned int));
@@ -143,4 +173,5 @@ int main (int argc , char** argv)
   free(d_img);
   free(d_tmp);
   cudaFree(c_d_img);
+  cudaFree(c_d_tmp);
 }
