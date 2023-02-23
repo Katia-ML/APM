@@ -100,39 +100,48 @@ __global__ void grayscale(unsigned int* c_d_img, int width, int height) {
 //Question 10
 __global__ void sobel(unsigned int* c_d_img, unsigned int* c_d_tmp, int width, int height)
 {
-    // Sobel filter coefficients
-    int sobel_x[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
-    int sobel_y[3][3] = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
+    int col   = threadIdx.x + blockDim.x * blockIdx.x;
+  int line  = threadIdx.y + blockDim.y * blockIdx.y;
+  int id;
+  double sob;
+  double sobelF[3];
 
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
+  if ((col < width ) && (line < height)){
 
-    if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
+  id  = ( (line + 1 ) * width + (col +1) ) * 3;
+  for (int i = 0; i < 3 ; i++ ) 
+  {
+  int aa = c_d_img[id + ( width - 1 ) * 3 + i];
+  int ab = c_d_img[id + ( width + 0 ) * 3 + i];
+  int ac = c_d_img[id + ( width + 1 ) * 3 + i];
+  int ba = c_d_img[id - 3 + i];
+  int bc = c_d_img[id + 3 + i];
+  int ca = c_d_img[id - (width - 1 ) * 3 + i]; 
+  int cb = c_d_img[id - (width - 0 ) * 3 + i];
+  int cc = c_d_img[id - (width + 1 ) * 3 + i];
 
-        int gx = 0, gy = 0;
+  int deltaX = -aa + ac   - 2*ba + 2*bc - ca  + cc;
+  int deltaY = +cc + 2*cb + ca   - ac   -2*ab - aa;
 
-        // Compute the gradient in the x direction
-        for (int i = -1; i <= 1; ++i) {
-            for (int j = -1; j <= 1; ++j) {
-                gx += sobel_x[i+1][j+1] * c_d_img[((y + i) * width + x + j) * 3];
-            }
-        }
+  sobelF[i] = sqrt((float)(deltaX*deltaX+deltaY*deltaY));
 
-        // Compute the gradient in the y direction
-        for (int i = -1; i <= 1; ++i) {
-            for (int j = -1; j <= 1; ++j) {
-                gy += sobel_y[i+1][j+1] * c_d_img[((y + i) * width + x + j) * 3];
-            }
-        }
+  }
 
-        // Compute the magnitude of the gradient
-        int magnitude = abs(gx) + abs(gy);
+  sob = (sobelF[0] + sobelF[1] + sobelF[2])/3;
 
-        // Set the pixel value to white if the magnitude is greater than a threshold
-        c_d_tmp[(y * width + x) * 3] = (magnitude > 128 ? 255 : 0);
-        c_d_tmp[(y * width + x) * 3 + 1] = (magnitude > 128 ? 255 : 0);
-        c_d_tmp[(y * width + x) * 3 + 2] = (magnitude > 128 ? 255 : 0);
-    }
+  if(sob > THRESHOLD){
+    c_d_img[id + 0] = 255;
+    c_d_img[id + 1] = 255;
+    c_d_img[id + 2] = 255;
+  }
+  else
+  {
+    c_d_img[id + 0] = 0;
+    c_d_img[id + 1] = 0;
+    c_d_img[id + 2] = 0;
+  }
+
+}
 }
 
 
