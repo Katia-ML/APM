@@ -72,32 +72,22 @@ __global__ void blur(unsigned int* c_d_img, int width, int height)
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     
-    if (x >= width || y >= height) return;
-
-    int idx = (y * width + x) * 3;
-    int a1, a2, a3, b1, b2, c1, c2, c3;
-    a1 = a2 = a3 = b1 = b2 = c1 = c2 = c3 = 0;
-
-    // Calculate the values for the pixels surrounding the current pixel
-    if (y > 0 && x > 0) a1 = c_d_img[idx - (width + 1) * 3];
-    if (y > 0) a2 = c_d_img[idx - width * 3];
-    if (y > 0 && x < width - 1) a3 = c_d_img[idx - (width - 1) * 3];
-    if (x > 0) b1 = c_d_img[idx - 3];
-    if (x < width - 1) b2 = c_d_img[idx + 3];
-    if (y < height - 1 && x > 0) c1 = c_d_img[idx + (width - 1) * 3];
-    if (y < height - 1) c2 = c_d_img[idx + width * 3];
-    if (y < height - 1 && x < width - 1) c3 = c_d_img[idx + (width + 1) * 3];
-
-    // Calculate the average color value for the surrounding pixels
-    int moy_r = (a1 + a2 + a3 + b1 + b2 + c1 + c2 + c3) / 8;
-    int moy_g = (a1 + a2 + a3 + b1 + b2 + c1 + c2 + c3 + 1) / 8;
-    int moy_b = (a1 + a2 + a3 + b1 + b2 + c1 + c2 + c3 + 2) / 8;
-
-    // Set the new color value for the current pixel
-    c_d_img[idx] = moy_r;
-    c_d_img[idx + 1] = moy_g;
-    c_d_img[idx + 2] = moy_b;
-    
+    if (x < width && y < height)
+    {
+        int idx = (y * width + x) * 3;
+        int idx_top = ((y - 1) * width + x) * 3;
+        int idx_bottom = ((y + 1) * width + x) * 3;
+        int idx_left = (y * width + (x - 1)) * 3;
+        int idx_right = (y * width + (x + 1)) * 3;
+        
+        int sum_red = c_d_img[idx] + (y > 0 ? c_d_img[idx_top] : 0) + (y < height - 1 ? c_d_img[idx_bottom] : 0) + (x > 0 ? c_d_img[idx_left] : 0) + (x < width - 1 ? c_d_img[idx_right] : 0);
+        int sum_green = c_d_img[idx + 1] + (y > 0 ? c_d_img[idx_top + 1] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 1] : 0) + (x > 0 ? c_d_img[idx_left + 1] : 0) + (x < width - 1 ? c_d_img[idx_right + 1] : 0);
+        int sum_blue = c_d_img[idx + 2] + (y > 0 ? c_d_img[idx_top + 2] : 0) + (y < height - 1 ? c_d_img[idx_bottom + 2] : 0) + (x > 0 ? c_d_img[idx_left + 2] : 0) + (x < width - 1 ? c_d_img[idx_right + 2] : 0);
+        
+        c_d_img[idx] = sum_red / 5;
+        c_d_img[idx + 1] = sum_green / 5;
+        c_d_img[idx + 2] = sum_blue / 5;
+    }
 
 }
 
