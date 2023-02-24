@@ -313,7 +313,7 @@ int main (int argc , char** argv)
 	
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
-  cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
+  //cudaMemcpy(d_tmp, c_d_tmp, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
   
   // Copy back
   memcpy(img, d_img, 3 * width * height * sizeof(unsigned int));
