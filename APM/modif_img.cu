@@ -194,6 +194,7 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
        c_d_img[idx + 1] = 0xFF / 2;
        c_d_img[idx + 2] /= 4;
     }
+    }
 
     /*  If the pixel is in the upper right quadrant of the image (y < height/2 and x > width/2 and x < width), the
     function calculates the luminance value (in grayscale) of the pixel using the formula: 0.299 * red + 0.587 * green + 0.114 * blue.
@@ -317,8 +318,8 @@ int main (int argc , char** argv)
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
-  popArt<<<grid_size, block_size>>>(c_d_img, width, height);
   vertical_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+  popArt<<<grid_size, block_size>>>(c_d_img, width, height);
 
 	
 
