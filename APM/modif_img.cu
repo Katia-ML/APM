@@ -194,6 +194,28 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
     }
 }
 
+//Question 14
+
+__global__ void vertical_flip(unsigned int* c_d_img, int width, int height)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    
+    if (x < width && y < height/2)
+    {
+        int idx1 = (y * width + x) * 3;
+        int idx2 = ((height - y - 1) * width + x) * 3;
+        
+        // Swap pixel values between idx1 and idx2
+        unsigned int tmp;
+        tmp = c_d_img[idx1]; c_d_img[idx1] = c_d_img[idx2]; c_d_img[idx2] = tmp;
+        tmp = c_d_img[idx1+1]; c_d_img[idx1+1] = c_d_img[idx2+1]; c_d_img[idx2+1] = tmp;
+        tmp = c_d_img[idx1+2]; c_d_img[idx1+2] = c_d_img[idx2+2]; c_d_img[idx2+2] = tmp;
+    }
+    /* We use the __syncthreads() function to synchronize all threads before continuing to process the image.*/
+    __syncthreads();
+}
+
 
 
 int main (int argc , char** argv)
@@ -252,11 +274,12 @@ int main (int argc , char** argv)
   dim3 grid_size((width + block_size.x - 1) / block_size.x, (height + block_size.y - 1) / block_size.y);
 
   //saturate_component<<<grid_size, block_size>>>(c_d_img, width, height, 0);
-  horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
+  //horizontal_flip<<<grid_size, block_size>>>(c_d_img, width, height);
   //blur<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //grayscale<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //sobel<<<grid_size, block_size>>>(c_d_img, WIDTH, HEIGHT);
   //popArt<<<grid_size, block_size>>>(c_d_img, width, height);
+  vertical_flip<<<grid_size, block_size>>>(c_d_img, width, height);
 
 
   cudaMemcpy(d_img, c_d_img, sizeof(unsigned int) * 3 * width * height, cudaMemcpyDeviceToHost);
