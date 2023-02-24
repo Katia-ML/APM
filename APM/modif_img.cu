@@ -207,6 +207,25 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
     }
 }
 
+// Question 13
+
+/*
+Le programme utilise les kernels CUDA pour traiter l'image. Le kernel saturate_component fonctionne en parallèle sur chaque pixel 
+de l'image pour saturer les composantes de couleur. Le kernel horizontal_flip fonctionne en parallèle sur chaque paire de pixels 
+correspondant aux pixels situés aux deux extrémités horizontales de l'image pour effectuer un flip horizontal. Le kernel blur fonctionne
+en parallèle sur chaque pixel de l'image pour flouter l'image... Le programme est efficace car il utilise les capacités de traitement 
+parallèle de la carte graphique pour traiter les images, ce qui accélère considérablement le traitement de l'image par rapport à une 
+implémentation purement séquentielle sur le processeur.
+Cependant, le programme utilise des constantes codées en dur pour la taille de l'image et la profondeur de bits, ce qui rend le code 
+moins flexible et plus difficile à maintenir. Il serait préférable de définir ces constantes en tant que variables ou de les lire 
+à partir de la structure de données de l'image elle-même.
+Une autre amélioration possible serait de vérifier si les images d'entrée et de sortie sont correctement allouées en mémoire avant 
+de les utiliser. Le programme ne vérifie pas actuellement si les allocations de mémoire ont réussi ou échoué, ce qui peut entraîner des 
+erreurs de segmentation si les allocations échouent.
+Enfin, on peut également améliorer le code en utilisant des techniques d'optimisation telles que la mémoire partagée pour réduire 
+les accès à la mémoire globale, ainsi que la fusion des boucles pour réduire les calculs redondants.
+*/
+
 //Question 14
 
 // To have the exacte same image as shown in the exemple in question 14, we run the horizontal_flip, vertical_flip and popArt kernels.
