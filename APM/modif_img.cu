@@ -40,7 +40,7 @@ __global__ void saturate_component(unsigned int* c_d_img, int width, int height,
 
 //Question 7
 
-/*  In the CUDA kernel, each thread retrieves the corresponding pixel values in the first and last column of the image, and then swaps
+/*  In the CUDA kernel horizontal_flip, each thread retrieves the corresponding pixel values in the first and last column of the image, and then swaps
  their positions.*/
 __global__ void horizontal_flip(unsigned int* c_d_img, int width, int height)
 {
@@ -160,24 +160,33 @@ __global__ void sobel(unsigned int* c_d_img, int width, int height)
 
 //Question 12
 
+/* The popArt kernel takes as input an array of unsigned integers "c_d_img" that stores the loaded image, the width
+and height of the image, and applies different effects to it depending on the position of the pixels in the image.*/
 __global__ void popArt(unsigned int *c_d_img, int width, int height)
 {
     int x  = threadIdx.x + blockDim.x * blockIdx.x;
     int y  = threadIdx.y + blockDim.y * blockIdx.y;
     int idx = (y * width + x)*3;
 
+    /* If the pixel is in the upper left quadrant of the image (y < height/2 and x < width/2), the function divides
+    the red channel value by 2, the green channel value by 4, and sets the blue channel value to 0xFF/1.5 (about 170).*/
     if ((y < height/2 ) && (x < width/2 )){
        c_d_img[idx] /= 2;
        c_d_img[idx + 1] /= 4;
        c_d_img[idx + 2] = 0xFF / 1.5;
     }
 
+    /* If the pixel is in the lower left quadrant of the image (y > height/2-1 and y < height and x < width/2), the
+    function sets the red channel value as the maximum value (0xFF) minus the red channel value, the green channel 
+    value at 0xFF/2 (about 128), and divides the blue channel value by 4.*/
     if ((y >height/2 -1) &&(y < height ) && (x < width/2 )){
-       c_d_img[idx] = 0xFF - c_d_img[idx + 0];
+       c_d_img[idx] = 0xFF - c_d_img[idx];
        c_d_img[idx + 1] = 0xFF / 2;
        c_d_img[idx + 2] /= 4;
     }
 
+    /* If the pixel is in the lower right quadrant of the image (y > height/2-1 and y < height and x > width/2-1 and
+    x < width), the function divides the values of the red, green, and blue channels by 2.*/
     if ((y > height/2 -1 ) && (y < height) && (x < width ) && (x > width/2 -1))
     {
        c_d_img[idx] = 0xFF / 2;
@@ -185,24 +194,34 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
        c_d_img[idx + 2] /= 2;
     }
 
-    int gray = c_d_img[idx]*0.299 + c_d_img[idx+1]*0.587 + c_d_img[idx+2]*0.114;
+    /*  If the pixel is in the upper right quadrant of the image (y < height/2 and x > width/2 and x < width), the
+    function calculates the luminance value (in grayscale) of the pixel using the formula: 0.299 * red + 0.587 * green + 0.114 * blue.
+    Then, it sets the value of the red, green, and blue channels to that luminance value.*/
+    unsigned int grey_value = c_d_img[idx]*0.299 + c_d_img[idx+1]*0.587 + c_d_img[idx+2]*0.114;
 
     if ((y < height/2  ) && (x > width/2 ) && (x < width )) {
-       c_d_img[idx] = gray;
-       c_d_img[idx + 1] = gray;
-       c_d_img[idx + 2] = gray;
+       c_d_img[idx] = grey_value;
+       c_d_img[idx + 1] = grey_value;
+       c_d_img[idx + 2] = grey_value;
     }
 }
 
 //Question 14
 
+// To have the exacte same image as shown in the exemple in question 14, we run the horizontal_flip, vertical_flip and popArt kernels.
+/*  The kernel vertical_flip performs a vertical inversion of the pixels of a given image. This function takes as input an array of 
+pixels representing the image, as well as the dimensions of the image (width and height).*/
 __global__ void vertical_flip(unsigned int* c_d_img, int width, int height)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     
+    /* verifies that the indexes are valid (x must be less than the width and y must be less than half the height). If the indexes 
+    are valid the code calculates the index "idx1" and "idx2" of the pixels corresponding to "y" and "height - y - 1" respectively, 
+    where "height" is the height of the image. In other words, "idx1" corresponds to the current position of the pixel in the image,
+    while "idx2" corresponds to the position of the pixel that is directly below it.*/
     if (x < width && y < height/2)
-    {
+    {   
         int idx1 = (y * width + x) * 3;
         int idx2 = ((height - y - 1) * width + x) * 3;
         
