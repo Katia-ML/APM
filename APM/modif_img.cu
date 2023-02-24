@@ -181,18 +181,19 @@ __global__ void popArt(unsigned int *c_d_img, int width, int height)
     function sets the red channel value as the maximum value (0xFF) minus the red channel value, the green channel 
     value at 0xFF/2 (about 128), and divides the blue channel value by 4.*/
     if ((y >height/2 -1) &&(y < height ) && (x < width/2 )){
-       c_d_img[idx] = 0xFF - c_d_img[idx];
-       c_d_img[idx + 1] = 0xFF / 2;
-       c_d_img[idx + 2] /= 4;
+       c_d_img[idx] = 0xFF / 2;
+       c_d_img[idx + 1] /= 2;
+       c_d_img[idx + 2] /= 2;
     }
 
     /* If the pixel is in the lower right quadrant of the image (y > height/2-1 and y < height and x > width/2-1 and
     x < width), the function divides the values of the red, green, and blue channels by 2.*/
     if ((y > height/2 -1 ) && (y < height) && (x < width ) && (x > width/2 -1))
     {
-       c_d_img[idx] = 0xFF / 2;
-       c_d_img[idx + 1] /= 2;
-       c_d_img[idx + 2] /= 2;
+       c_d_img[idx] = 0xFF - c_d_img[idx];
+       c_d_img[idx + 1] = 0xFF / 2;
+       c_d_img[idx + 2] /= 4;
+    }
     }
 
     /*  If the pixel is in the upper right quadrant of the image (y < height/2 and x > width/2 and x < width), the
